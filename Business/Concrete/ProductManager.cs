@@ -1,8 +1,10 @@
 ﻿using Business.Abstract;
+using Business.CCS;
 using Business.Constants;
 using Business.ValidationRules.FluentValidation;
 using Core.Aspects.Autofac.Validation;
 using Core.CrossCuttingConcerns.Validation;
+using Core.Utilities.Business;
 using Core.Utilities.Results;
 using DataAccess.Abstract;
 using DataAccess.Concrete.InMemory;
@@ -20,17 +22,24 @@ namespace Business.Concrete
     public class ProductManager : IProductService
     {
         IProductDal _productDal;
-
-        public ProductManager(IProductDal productDal)
+        ICategoryService _categoryService;
+        public ProductManager(IProductDal productDal,ICategoryService categoryService)
         {
             _productDal = productDal;
+            _categoryService = categoryService;
         }
-        [ValidationAspect(typeof(ProductValidator))]
+        
+
+        //[ValidationAspect(typeof(ProductValidator))]
         public IResult Add(Product product)
         {
-
-            _productDal.Add(product);
-
+            IResult result= BusinessRules.Run(CheckIfProductNameExits(product.ProductName), 
+                CheckIfProductCountOfCategoryCorrect(product.CategoryID),CheckIfCategoryLimitExceed());
+            if(result != null)
+            {
+                return result;
+            }    
+        _productDal.Add(product);
             return new SuccessResult(Messages.ProductAdded);
         }
 
@@ -64,9 +73,43 @@ namespace Business.Concrete
         {
             
             return new SuccessDataResult<List<ProductDetailDto>>(_productDal.GetProductDetails(),"fdfdsfsdfsdfs");
-        }         
+        }
 
-}
+        //[ValidationAspect(typeof(ProductValidator))]
+        public IResult Update(Product product)
+        {
+            throw new NotImplementedException();
+        }
+
+        private IResult CheckIfProductCountOfCategoryCorrect(int categoryId)
+        {
+            var result = _productDal.GetAll(p => p.CategoryID == categoryId).Count;
+            if (result >= 10)
+            {
+                return new ErrorResult("Ürün eklenemedi");
+            }
+            return new SuccessResult();
+        }
+
+        private IResult CheckIfProductNameExits(string productName)
+        {
+            var result = _productDal.GetAll(p => p.ProductName == productName).Any();
+            if (result)
+            {
+                return new ErrorResult(Messages.ProductNameAlreadyExits);
+            }
+            return new SuccessResult();
+        }
+        private IResult CheckIfCategoryLimitExceed()
+        {
+            var result = _categoryService.GetAll();
+            if (result.Data.Count > 15)
+            {
+                return new ErrorResult(Messages.CategoryLimitExceed);
+            }
+            return new SuccessResult();
+        }
+    }
 }
 
 

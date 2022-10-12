@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Core.Aspects.Autofac.Validation
 {
-    public class ValidationAspect : MethodInterception
+    public class ValidationAspect : MethodInterception //Aspect yani on before ve after diyebiliriz.
     {
         private Type _validatorType;
         public ValidationAspect(Type validatorType)
@@ -32,5 +32,6 @@ namespace Core.Aspects.Autofac.Validation
                 ValidationTool.Validate(validator, entity);
             }
         }
+
     }
 }
